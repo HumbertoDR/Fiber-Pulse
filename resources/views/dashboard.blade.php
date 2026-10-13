@@ -69,16 +69,17 @@
                     Ver QR
                 </button>
 
-                {{-- Botón Panel Instructor --}}
-                <button id="btn-open-instructor"
+                {{-- Botón Administrador (abre modal PIN) --}}
+                <button id="btn-open-pin"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
                            bg-violet-100 hover:bg-violet-200 dark:bg-violet-950/60 dark:hover:bg-violet-900/60
                            border border-violet-200 dark:border-violet-700/50
                            text-violet-700 dark:text-violet-300 transition-all duration-200">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <span class="hidden sm:inline">Instructor</span>
+                    <span class="hidden sm:inline">Administrador</span>
                 </button>
 
                 {{-- Toggle Dark / Light --}}
@@ -416,7 +417,74 @@
 
 
 {{-- ════════════════════════════════════════════
-     MODAL · Panel del Instructor
+     MODAL · PIN de acceso (Administrador)
+════════════════════════════════════════════ --}}
+<div id="modal-pin" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+
+    {{-- Backdrop --}}
+    <div id="modal-pin-backdrop" class="modal-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+    {{-- Panel --}}
+    <div class="modal-panel relative z-10 glass-card rounded-3xl p-8 w-full max-w-xs text-center shadow-2xl">
+
+        <button id="btn-close-pin"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center
+                   bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600
+                   transition-all duration-200">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+
+        {{-- Icono --}}
+        <div class="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-7 h-7 text-violet-600 dark:text-violet-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+        </div>
+
+        <h2 class="text-sm font-bold uppercase tracking-wider mb-1">Acceso Administrador</h2>
+        <p class="text-xs opacity-45 mb-6">Ingresa el PIN de 4 dígitos para continuar</p>
+
+        {{-- Input PIN --}}
+        <div class="relative mb-3">
+            <input
+                id="pin-input"
+                type="password"
+                inputmode="numeric"
+                maxlength="4"
+                placeholder="• • • •"
+                autocomplete="off"
+                class="w-full text-center text-2xl font-bold tracking-[0.5em] py-3 px-4 rounded-xl
+                       bg-slate-100 dark:bg-slate-800
+                       border-2 border-slate-200 dark:border-slate-700
+                       focus:outline-none focus:border-violet-500 dark:focus:border-violet-400
+                       text-slate-800 dark:text-slate-100
+                       transition-all duration-200"
+            >
+        </div>
+
+        {{-- Mensaje de error --}}
+        <p id="pin-error" class="hidden text-xs font-semibold text-red-500 dark:text-[#ff3366] mb-3">
+            PIN incorrecto. Inténtalo de nuevo.
+        </p>
+
+        {{-- Botón confirmar --}}
+        <button id="btn-confirm-pin"
+            class="w-full py-2.5 rounded-xl text-sm font-bold
+                   bg-violet-600 hover:bg-violet-700 dark:bg-violet-700 dark:hover:bg-violet-600
+                   text-white transition-all duration-200 shadow-lg">
+            Acceder
+        </button>
+
+    </div>
+</div>
+{{-- /MODAL PIN --}}
+
+
+{{-- ════════════════════════════════════════════
+     MODAL · Panel del Administrador
 ════════════════════════════════════════════ --}}
 <div id="modal-instructor" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
 
@@ -431,7 +499,7 @@
         {{-- Header del modal --}}
         <div class="flex items-start justify-between mb-5">
             <div>
-                <h2 class="text-sm font-bold uppercase tracking-wider">Panel del Instructor</h2>
+                <h2 class="text-sm font-bold uppercase tracking-wider">Panel del Administrador</h2>
                 <p class="text-xs opacity-45 mt-0.5">Inyecta anomalías para demostración en tiempo real</p>
             </div>
             <button id="btn-close-instructor"
@@ -530,7 +598,7 @@
 </div>
 
 
-{{-- ─── Datos para JS ─── --}}
+{{-- ─── Datos para JS (Vite) ─── --}}
 <script>
     window.FIBERPULSE_CONFIG = {{ \Illuminate\Support\Js::from([
         'localUrl'      => $localUrl,
@@ -542,6 +610,178 @@
         'anomaly'  => $anomaly,
         'history'  => $history,
     ]) }};
+</script>
+
+{{-- ─── Script inline: lógica de modales y PIN (no depende de Vite/build) ─── --}}
+<script>
+(function () {
+    'use strict';
+
+    var ADMIN_PIN      = '0117';
+    var SESSION_KEY    = 'fiberpulse_admin_auth';
+
+    /* ── helpers de modal ── */
+    function openModal(id) {
+        var m = document.getElementById(id);
+        if (!m) return;
+        m.classList.remove('hidden');
+        requestAnimationFrame(function () { m.classList.add('modal-open'); });
+    }
+
+    function closeModal(id) {
+        var m = document.getElementById(id);
+        if (!m) return;
+        m.classList.remove('modal-open');
+        setTimeout(function () { m.classList.add('hidden'); }, 250);
+    }
+
+    /* ── PIN ── */
+    function isAuth() { return sessionStorage.getItem(SESSION_KEY) === 'true'; }
+    function setAuth() { sessionStorage.setItem(SESSION_KEY, 'true'); }
+
+    function verifyPin() {
+        var input = document.getElementById('pin-input');
+        var error = document.getElementById('pin-error');
+        if (!input) return;
+        if (input.value.trim() === ADMIN_PIN) {
+            setAuth();
+            if (error) error.classList.add('hidden');
+            input.value = '';
+            closeModal('modal-pin');
+            setTimeout(function () { openModal('modal-instructor'); }, 280);
+        } else {
+            input.value = '';
+            if (error) error.classList.remove('hidden');
+            setTimeout(function () {
+                if (error) error.classList.add('hidden');
+            }, 2500);
+            input.focus();
+        }
+    }
+
+    /* ── Toast simple ── */
+    function toast(msg, type) {
+        var c = document.getElementById('toast-container');
+        if (!c) return;
+        var isDark = document.documentElement.classList.contains('dark');
+        var colors = {
+            warning: isDark ? 'border-yellow-400/40 text-yellow-300' : 'border-yellow-300 text-yellow-700',
+            success: isDark ? 'border-green-400/40 text-green-300'   : 'border-green-300 text-green-700',
+            error:   isDark ? 'border-red-400/40 text-red-300'       : 'border-red-300 text-red-700',
+            info:    isDark ? 'border-white/10 text-slate-200'        : 'border-slate-200 text-slate-700',
+        };
+        var t = document.createElement('div');
+        t.className = 'glass-card px-4 py-3 rounded-xl border mb-2 text-sm font-medium animate-fade-in ' + (colors[type] || colors.info);
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(function () {
+            t.style.cssText += 'opacity:0;transform:translateY(-8px);transition:all 0.3s ease;';
+            setTimeout(function () { t.remove(); }, 300);
+        }, 3500);
+    }
+
+    /* ── Inyectar anomalía (AJAX) ── */
+    function injectAnomaly(type, btn) {
+        var orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = 'Inyectando...';
+        fetch('/telemetry/inject/' + type, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ duration: 60 })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            toast((d.success ? '⚡ ' : '❌ ') + d.message, d.success ? 'warning' : 'error');
+        })
+        .catch(function () { toast('Error de conexión', 'error'); })
+        .finally(function () {
+            setTimeout(function () { btn.disabled = false; btn.innerHTML = orig; }, 2000);
+        });
+    }
+
+    function clearAnomaly() {
+        fetch('/telemetry/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({})
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { toast((d.success ? '✅ ' : '❌ ') + d.message, d.success ? 'success' : 'error'); })
+        .catch(function () { toast('Error de conexión', 'error'); });
+    }
+
+    /* ── Wire-up al cargar el DOM ── */
+    document.addEventListener('DOMContentLoaded', function () {
+
+        /* Botón Administrador */
+        var btnAdmin = document.getElementById('btn-open-pin');
+        if (btnAdmin) {
+            btnAdmin.addEventListener('click', function () {
+                if (isAuth()) { openModal('modal-instructor'); }
+                else {
+                    openModal('modal-pin');
+                    setTimeout(function () {
+                        var inp = document.getElementById('pin-input');
+                        if (inp) inp.focus();
+                    }, 300);
+                }
+            });
+        }
+
+        /* Modal PIN */
+        document.getElementById('btn-close-pin')?.addEventListener('click', function () {
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-error')?.classList.add('hidden');
+            closeModal('modal-pin');
+        });
+        document.getElementById('modal-pin-backdrop')?.addEventListener('click', function () {
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-error')?.classList.add('hidden');
+            closeModal('modal-pin');
+        });
+        document.getElementById('btn-confirm-pin')?.addEventListener('click', verifyPin);
+        document.getElementById('pin-input')?.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') verifyPin();
+        });
+
+        /* Modal Instructor */
+        document.getElementById('btn-close-instructor')?.addEventListener('click', function () { closeModal('modal-instructor'); });
+        document.getElementById('modal-instructor-backdrop')?.addEventListener('click', function () { closeModal('modal-instructor'); });
+
+        /* Botones de anomalía */
+        document.querySelectorAll('[data-inject]').forEach(function (btn) {
+            btn.addEventListener('click', function () { injectAnomaly(btn.dataset.inject, btn); });
+        });
+
+        /* Detener anomalía */
+        document.getElementById('clear-anomaly-btn')?.addEventListener('click', clearAnomaly);
+        document.getElementById('clear-anomaly-btn-modal')?.addEventListener('click', function () {
+            clearAnomaly();
+            closeModal('modal-instructor');
+        });
+
+        /* Botón QR */
+        document.getElementById('btn-open-qr')?.addEventListener('click', function () {
+            openModal('modal-qr');
+        });
+        document.getElementById('btn-close-qr')?.addEventListener('click', function () { closeModal('modal-qr'); });
+        document.getElementById('modal-qr-backdrop')?.addEventListener('click', function () { closeModal('modal-qr'); });
+
+        /* Copiar URL */
+        document.getElementById('copy-url-btn')?.addEventListener('click', function () {
+            var url = document.querySelector('.local-url-text')?.textContent?.trim() || '';
+            if (url) navigator.clipboard.writeText(url).then(function () { toast('URL copiada', 'success'); });
+        });
+
+        /* Escape cierra cualquier modal */
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                ['modal-qr', 'modal-pin', 'modal-instructor'].forEach(closeModal);
+            }
+        });
+    });
+})();
 </script>
 
 </body>
