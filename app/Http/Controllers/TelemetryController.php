@@ -7,8 +7,8 @@ use App\Services\GeminiAnalyzerService;
 use App\Services\TelemetryCollectorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Redis;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * TelemetryController
@@ -41,7 +41,7 @@ class TelemetryController extends Controller
      * ─── SSE: Stream de telemetría en tiempo real ───
      * Envía eventos telemetry, analysis y anomaly a los clientes conectados.
      */
-    public function stream(): Response
+    public function stream(): StreamedResponse
     {
         ignore_user_abort(true);
         set_time_limit(300);
