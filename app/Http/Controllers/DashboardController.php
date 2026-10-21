@@ -63,6 +63,6 @@ class DashboardController extends Controller
     {
         $host = $request->getHttpHost();
         $parts = explode(':', $host);
-        return isset($parts[1]) ? (int) $parts[1] : 8080;
+        return isset($parts[1]) ? (int) $parts[1] : 8000;
     }
 }
