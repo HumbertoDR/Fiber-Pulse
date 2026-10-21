@@ -38,33 +38,106 @@ class TelemetryCollectorService
     /**
      * Capturar métricas actuales del sistema.
      *
-     * @return array Métricas con claves: cpu_usage, ram_usage, temperature,
-     *               network_throughput, latency_ms, optical_signal_dbm, status
+     * Modos disponibles (TELEMETRY_MODE en .env):
+     *   host_agent → Lee del agente PowerShell corriendo en el host Windows
+     *   real       → Lee /proc directamente (útil en Linux nativo)
+     *   auto       → Intenta host_agent, luego /proc, luego simula
+     *   simulated  → Siempre simula (para demos sin hardware real)
      */
     public function collect(): array
     {
-        $mode = config('app.telemetry_mode', env('TELEMETRY_MODE', 'auto'));
+        $mode = env('TELEMETRY_MODE', 'auto');
 
-        if ($mode === 'simulated') {
-            $metrics = $this->simulateMetrics();
-        } else {
-            // 'auto' o 'real': intentar métricas reales, simular lo que falte
-            $metrics = $this->collectRealMetrics();
-        }
+        $metrics = match($mode) {
+            'host_agent' => $this->collectFromHostAgent(),
+            'real'       => $this->collectRealMetrics(),
+            'simulated'  => $this->simulateMetrics(),
+            default      => $this->collectAuto(),   // 'auto'
+        };
 
-        // Aplicar anomalía inyectada por el instructor
         $metrics = $this->applyAnomaly($metrics);
-
-        // Determinar estado basándose en umbrales
-        $metrics['status'] = TelemetryLog::determineStatus($metrics);
+        $metrics['status']      = TelemetryLog::determineStatus($metrics);
         $metrics['recorded_at'] = now()->toDateTimeString();
 
         return $metrics;
     }
 
     /**
-     * Almacenar métricas en MySQL + Redis y guardar en historial.
+     * Modo auto: host_agent → /proc → simulación.
      */
+    private function collectAuto(): array
+    {
+        // 1. Intentar agente en el host
+        $agentMetrics = $this->collectFromHostAgent();
+        if ($agentMetrics !== null) {
+            return $agentMetrics;
+        }
+
+        // 2. Intentar /proc (Linux nativo)
+        if (is_readable('/proc/stat')) {
+            return $this->collectRealMetrics();
+        }
+
+        // 3. Fallback a simulación
+        return $this->simulateMetrics();
+    }
+
+        /**
+     * Obtener métricas del agente PowerShell corriendo en el host Windows.
+     * El agente expone: http://host.docker.internal:9100/metrics
+     */
+    private function collectFromHostAgent(): ?array
+    {
+        $host = env('METRICS_AGENT_HOST', 'host.docker.internal');
+        $port = env('METRICS_AGENT_PORT', '9100');
+        $url  = "http://{$host}:{$port}/metrics";
+
+        try {
+            $ctx = stream_context_create([
+                'http' => [
+                    'timeout'       => 10,
+                    'ignore_errors' => true,
+                ],
+            ]);
+
+            $start = microtime(true);
+            $body  = file_get_contents($url, false, $ctx);
+            $ms    = round((microtime(true) - $start) * 1000);
+
+            if ($body === false || $body === '') {
+                $err = error_get_last()['message'] ?? 'sin detalle';
+                Log::warning("Host agent: sin respuesta tras {$ms}ms ({$url}): {$err}");
+                return null;
+            }
+
+            $data = json_decode($body, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('Host agent: JSON inválido: ' . json_last_error_msg());
+                return null;
+            }
+
+            // Validar que tenga los campos mínimos
+            if (!isset($data['cpu_usage'], $data['ram_usage'])) {
+                Log::warning('Host agent: faltan campos cpu_usage/ram_usage');
+                return null;
+            }
+
+            Log::debug("Host agent OK en {$ms}ms");
+
+            return [
+                'cpu_usage'          => (float) ($data['cpu_usage']          ?? 0),
+                'ram_usage'          => (float) ($data['ram_usage']          ?? 0),
+                'temperature'        => (float) ($data['temperature']        ?? 45.0),
+                'network_throughput' => (float) ($data['network_throughput'] ?? 0),
+                'latency_ms'         => (int)   ($data['latency_ms']         ?? 5),
+                'optical_signal_dbm' => (float) ($data['optical_signal_dbm'] ?? -18.5),
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning("Host agent no disponible: {$e->getMessage()}");
+            return null;
+        }
+    }
     public function store(array $metrics): TelemetryLog
     {
         // Guardar en MySQL
@@ -402,37 +475,52 @@ class TelemetryCollectorService
     /**
      * Aplicar anomalía inyectada a las métricas actuales.
      */
-    private function applyAnomaly(array $metrics): array
+    private function applyAnomaly(?array $metrics): array
     {
-        $anomaly = $this->getActiveAnomaly();
-        if (!$anomaly) {
-            return $metrics;
+        if (empty($metrics)) {
+            $metrics = [
+                'cpu_usage' => 0.0,
+                'ram_usage' => 0.0,
+                'temperature' => 45.0,
+                'network_throughput' => 0.0,
+                'latency_ms' => 5,
+                'optical_signal_dbm' => -18.0,
+            ];
         }
 
-        switch ($anomaly['type']) {
-            case 'high_temp':
-                $metrics['temperature'] = mt_rand(88, 96) / 1.0;
-                break;
+        try {
+            $anomaly = method_exists($this, 'getActiveAnomaly') ? $this->getActiveAnomaly() : null;
+            if (!$anomaly || !isset($anomaly['type'])) {
+                return $metrics;
+            }
 
-            case 'cpu_overload':
-                $metrics['cpu_usage'] = mt_rand(93, 99) / 1.0;
-                $metrics['temperature'] = max($metrics['temperature'], 80);
-                break;
+            switch ($anomaly['type']) {
+                case 'high_temp':
+                    $metrics['temperature'] = mt_rand(88, 96) / 1.0;
+                    break;
 
-            case 'ram_leak':
-                $metrics['ram_usage'] = mt_rand(92, 98) / 1.0;
-                break;
+                case 'cpu_overload':
+                    $metrics['cpu_usage'] = mt_rand(93, 99) / 1.0;
+                    $metrics['temperature'] = max($metrics['temperature'] ?? 50, 80);
+                    break;
 
-            case 'link_down':
-                $metrics['optical_signal_dbm'] = round(mt_rand(-450, -380) / 10, 1);
-                $metrics['latency_ms'] = mt_rand(400, 800);
-                $metrics['network_throughput'] = mt_rand(0, 20) / 10;
-                break;
+                case 'ram_leak':
+                    $metrics['ram_usage'] = mt_rand(92, 98) / 1.0;
+                    break;
 
-            case 'network_congestion':
-                $metrics['network_throughput'] = mt_rand(900, 1100) / 1.0;
-                $metrics['latency_ms'] = mt_rand(120, 250);
-                break;
+                case 'link_down':
+                    $metrics['optical_signal_dbm'] = round(mt_rand(-450, -380) / 10, 1);
+                    $metrics['latency_ms'] = mt_rand(400, 800);
+                    $metrics['network_throughput'] = mt_rand(0, 20) / 10;
+                    break;
+
+                case 'network_congestion':
+                    $metrics['network_throughput'] = mt_rand(900, 1100) / 1.0;
+                    $metrics['latency_ms'] = mt_rand(120, 250);
+                    break;
+            }
+        } catch (\Throwable $e) {
+            // Evita que un fallo de Redis o caché tire abajo el proceso de telemetría
         }
 
         return $metrics;
