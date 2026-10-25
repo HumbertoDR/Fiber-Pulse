@@ -43,10 +43,11 @@ class DashboardController extends Controller
 
     /**
      * Construir la URL local accesible desde la red Wi-Fi del salón.
-     * Prioriza APP_LOCAL_IP del .env, luego usa el host de la petición.
+     * Prioridad: APP_LOCAL_IP → APP_URL → host de la petición.
      */
     private function getLocalUrl(Request $request): string
     {
+        // 1) IP explícita configurada en el .env
         $customIp = env('APP_LOCAL_IP');
         if ($customIp) {
             if (str_contains($customIp, ':')) {
@@ -56,6 +57,13 @@ class DashboardController extends Controller
             return 'http://' . $customIp . ':' . $port;
         }
 
+        // 2) APP_URL si está configurada (y no apunta a localhost)
+        $appUrl = config('app.url');
+        if ($appUrl && !in_array(parse_url($appUrl, PHP_URL_HOST), ['localhost', '127.0.0.1', '::1'], true)) {
+            return rtrim($appUrl, '/');
+        }
+
+        // 3) Fallback: host real de la petición entrante
         return $request->getSchemeAndHttpHost();
     }
 
