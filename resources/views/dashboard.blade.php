@@ -159,7 +159,7 @@
                         OPTIMAL
                     </span>
                     <span id="ai-source" class="text-[11px] font-medium text-cyan-600 dark:text-[#00ffd5]">
-                        Gemini 2.5 Flash
+                        {{ $geminiModel }}
                     </span>
                 </div>
 
@@ -603,6 +603,7 @@
     window.FIBERPULSE_CONFIG = {{ \Illuminate\Support\Js::from([
         'localUrl'      => $localUrl,
         'geminiEnabled' => $geminiEnabled,
+        'geminiModel'   => $geminiModel,
     ]) }};
     window.FIBERPULSE_DATA = {{ \Illuminate\Support\Js::from([
         'latest'   => $latest,

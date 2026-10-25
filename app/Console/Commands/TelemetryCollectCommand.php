@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\AnalyzeTelemetryJob;
+use App\Services\GeminiAnalyzerService;
 use App\Services\TelemetryCollectorService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +46,7 @@ class TelemetryCollectCommand extends Command
     /** Espera mínima entre análisis por anomalía si el estado no cambia (segundos) */
     private const ANOMALY_COOLDOWN = 30;
 
-    public function handle(TelemetryCollectorService $collector): int
+    public function handle(TelemetryCollectorService $collector, GeminiAnalyzerService $analyzer): int
     {
         $interval = (int) $this->option('interval');
         $max = (int) $this->option('max');
@@ -94,15 +95,23 @@ class TelemetryCollectCommand extends Command
                 $cooldownPassed = (time() - $this->lastAnomalyAnalysis) >= self::ANOMALY_COOLDOWN;
 
                 if ($isAnomaly && ($statusChanged || $cooldownPassed)) {
-                    // Anomalía nueva, o sigue activa y ya pasó el tiempo de espera
-                    AnalyzeTelemetryJob::dispatch($log->id);
-                    $this->warn('  → Anomalía detectada, análisis IA dispatchado');
+                    // Anomalía nueva o sigue activa: llamar a Gemini de forma síncrona
+                    // para que el diagnóstico esté disponible de inmediato en Redis/SSE
+                    $this->warn('  → Anomalía detectada, consultando Gemini...');
+                    try {
+                        $analysis = $analyzer->analyze();
+                        $analyzer->persist($analysis, $log->id);
+                        $this->warn('  → Análisis IA completado: ' . $analysis['status']);
+                    } catch (\Exception $e) {
+                        Log::error('Gemini síncrono falló: ' . $e->getMessage());
+                        $this->error('  → Gemini falló, usando análisis local');
+                    }
                     $this->lastAnomalyAnalysis = time();
                     $this->lastRoutineAnalysis = time();
                 } elseif ((time() - $this->lastRoutineAnalysis) >= self::ROUTINE_ANALYSIS_INTERVAL) {
-                    // Análisis de rutina cada 60s
+                    // Análisis de rutina cada 60s: se envía a la cola (no urge)
                     AnalyzeTelemetryJob::dispatch($log->id);
-                    $this->info('  → Análisis de rutina dispatchado');
+                    $this->info('  → Análisis de rutina dispatchado a la cola');
                     $this->lastRoutineAnalysis = time();
                 }
 

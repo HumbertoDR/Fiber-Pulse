@@ -220,7 +220,7 @@ function updateAIBanner(data) {
     const sourceEl = document.getElementById('ai-source');
     if (sourceEl) {
         const src = data.source || 'unknown';
-        sourceEl.textContent = src === 'gemini' ? 'Gemini 2.5 Flash' : 'Análisis Local (umbrales)';
+        sourceEl.textContent = src === 'gemini' ? CONFIG.geminiModel : 'Análisis Local (umbrales)';
         sourceEl.className = `text-[11px] font-medium ${src === 'gemini' ? 'text-cyan-600 dark:text-[#00ffd5]' : 'text-slate-500 dark:text-slate-400'}`;
     }
     const timeEl = document.getElementById('ai-timestamp');
@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Badge Gemini
     const geminiBadge = document.getElementById('gemini-badge');
     if (geminiBadge) {
-        geminiBadge.textContent = CONFIG.geminiEnabled ? 'Gemini 2.5 Flash' : 'Análisis Local';
+        geminiBadge.textContent = CONFIG.geminiEnabled ? (CONFIG.geminiModel || 'Gemini') : 'Análisis Local';
         geminiBadge.className = 'status-badge ' + (CONFIG.geminiEnabled
             ? (isDark() ? 'bg-[#00ffd5]/15 text-[#00ffd5]' : 'bg-cyan-100 text-cyan-700')
             : (isDark() ? 'bg-slate-700 text-slate-300'     : 'bg-slate-200 text-slate-600'));
