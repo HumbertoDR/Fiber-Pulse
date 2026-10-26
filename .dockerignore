@@ -1,13 +1,32 @@
-vendor
-node_modules
-.git
+# Dependencias (se instalan dentro del contenedor)
+vendor/
+node_modules/
+
+# Git
+.git/
 .gitignore
+.gitattributes
+
+# Entorno local (nunca copiar al contenedor)
 .env
+
+# Logs y cachés generados en runtime
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/app/public/*
+
+# Assets compilados (se compilan en el contenedor)
+public/build/
+
+# Docs y herramientas de desarrollo local
 *.md
-.vscode
-.idea
+.editorconfig
+.vscode/
+.idea/
+host-agent/
+
+# Tests
+tests/
+phpunit.xml

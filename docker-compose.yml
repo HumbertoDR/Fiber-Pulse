@@ -1,10 +1,11 @@
 services:
+
+  # ─── Aplicación principal (Laravel + php artisan serve) ───
   app:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    tty: true
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
@@ -24,6 +25,7 @@ services:
       redis:
         condition: service_started
 
+  # ─── Worker de colas (análisis IA de rutina) ───
   worker:
     build:
       context: .
@@ -35,11 +37,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: >
-      sh -c "until [ -f vendor/autoload.php ] && [ -f .env ]; do sleep 2; done;
+      sh -c "until [ -f vendor/autoload.php ]; do sleep 2; done &&
              php artisan queue:work --tries=3 --timeout=60"
     depends_on:
       - app
 
+  # ─── Collector de telemetría (bucle cada 5s) ───
   collector:
     build:
       context: .
@@ -51,21 +54,22 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: >
-      sh -c "until [ -f vendor/autoload.php ] && [ -f .env ]; do sleep 2; done;
+      sh -c "until [ -f vendor/autoload.php ]; do sleep 2; done &&
              php artisan telemetry:collect"
     depends_on:
       - app
 
+  # ─── Base de datos MySQL 8 ───
   db:
     image: mysql:8.0
     restart: unless-stopped
     ports:
       - "3307:3306"
     environment:
-      MYSQL_DATABASE: '${DB_DATABASE:-fiberpulse}'
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
-      MYSQL_USER: '${DB_USERNAME:-sail}'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_DATABASE: "${DB_DATABASE:-fiberpulse}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-secret}"
+      MYSQL_USER: "${DB_USERNAME:-sail}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
     volumes:
       - dbdata:/var/lib/mysql
     healthcheck:
@@ -74,10 +78,12 @@ services:
       timeout: 5s
       retries: 20
 
+  # ─── Redis (colas y caché) ───
   redis:
     image: redis:7-alpine
     restart: unless-stopped
 
+  # ─── phpMyAdmin (administración visual de BD) ───
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: unless-stopped
