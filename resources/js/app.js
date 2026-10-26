@@ -246,6 +246,14 @@ function statusToClass(status) {
 //  BANNER ANOMALÍA
 // ══════════════════════════════════════════════════
 
+const ANOMALY_LABELS = {
+    high_temp:           'Alta Temperatura de CPU',
+    cpu_overload:        'Sobrecarga de CPU',
+    ram_leak:            'Fuga de Memoria RAM',
+    link_down:           'Caída de Enlace Óptico',
+    network_congestion:  'Congestión de Red',
+};
+
 function updateAnomaly(data) {
     state.anomaly = data;
     const banner = document.getElementById('anomaly-banner');
@@ -257,7 +265,7 @@ function updateAnomaly(data) {
     }
     banner.classList.remove('hidden');
     const labelEl = document.getElementById('anomaly-label');
-    if (labelEl) labelEl.textContent = data.type || 'Anomalía activa';
+    if (labelEl) labelEl.textContent = ANOMALY_LABELS[data.type] || data.type;
     updateAnomalyCountdown(data);
     if (state.anomalyTimer) clearInterval(state.anomalyTimer);
     state.anomalyTimer = setInterval(() => updateAnomalyCountdown(data), 1000);
@@ -649,6 +657,10 @@ const alarm = (() => {
         const s = (newStatus || '').toUpperCase();
         if (s === 'CRITICAL' && lastAlarmState !== 'CRITICAL') {
             playAlertTone();
+            // Vibración en móviles: 300ms · pausa 100ms · 300ms · pausa 100ms · 500ms
+            if ('vibrate' in navigator) {
+                navigator.vibrate([300, 100, 300, 100, 500]);
+            }
         }
         lastAlarmState = s || null;
     }
