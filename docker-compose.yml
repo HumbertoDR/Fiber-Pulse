@@ -37,7 +37,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: >
-      sh -c "until [ -f vendor/autoload.php ]; do sleep 2; done &&
+      sh -c "until [ -f vendor/autoload.php ] && [ -f .env ]; do sleep 2; done &&
              php artisan queue:work --tries=3 --timeout=60"
     depends_on:
       - app
@@ -54,7 +54,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: >
-      sh -c "until [ -f vendor/autoload.php ]; do sleep 2; done &&
+      sh -c "until [ -f vendor/autoload.php ] && [ -f .env ]; do sleep 2; done &&
              php artisan telemetry:collect"
     depends_on:
       - app

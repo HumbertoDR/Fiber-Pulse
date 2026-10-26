@@ -1,20 +1,42 @@
 # syntax=docker/dockerfile:1
-FROM php:8.4-cli
 
-# ─── Dependencias del sistema ───
+# ══════════════════════════════════════════════════
+# ETAPA 1 — Node.js: instala deps y compila assets
+# ══════════════════════════════════════════════════
+FROM node:22-alpine AS frontend
+
+WORKDIR /app
+
+# Copiar solo los archivos necesarios para npm install
+COPY package.json package-lock.json ./
+
+RUN npm ci --no-audit --no-fund
+
+# Copiar el resto del código fuente para el build
+COPY resources/ resources/
+COPY vite.config.js ./
+COPY public/ public/
+
+RUN npm run build
+
+# ══════════════════════════════════════════════════
+# ETAPA 2 — PHP: imagen final de producción
+# ══════════════════════════════════════════════════
+FROM php:8.4-cli AS app
+
+# ─── Dependencias del sistema (solo las necesarias) ───
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     zip \
     unzip \
     libonig-dev \
-    libxml2-dev \
     libzip-dev \
     libicu-dev \
     default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# ─── Extensiones PHP necesarias ───
+# ─── Extensiones PHP requeridas por el proyecto ───
 RUN docker-php-ext-install \
     pdo_mysql \
     mbstring \
@@ -28,19 +50,19 @@ RUN docker-php-ext-install \
 # ─── Redis (caché y colas) ───
 RUN pecl install redis && docker-php-ext-enable redis
 
+# ─── Configuración PHP crítica para SSE ───
+# output_buffering=Off e implicit_flush=On son obligatorios para que
+# Server-Sent Events funcione sin bloqueos en tiempo real
+RUN echo "output_buffering = Off\nimplicit_flush = On\nmemory_limit = 512M\nmax_execution_time = 300\nopcache.enable = 1\nopcache.memory_consumption = 128\nopcache.max_accelerated_files = 10000" \
+    > /usr/local/etc/php/conf.d/fiberpulse.ini
+
 # ─── Composer ───
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# ─── Node.js 22 + npm (para Vite build) ───
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# ─── Assets compilados desde la etapa Node (sin Node.js en imagen final) ───
+COPY --from=frontend /app/public/build ./public/build
 
-# ─── Configuración PHP para SSE (sin buffering) ───
-RUN echo "output_buffering = Off\nimplicit_flush = On\nmemory_limit = 512M\nmax_execution_time = 300" \
-    > /usr/local/etc/php/conf.d/fiberpulse.ini
-
-# ─── Entrypoint: prepara el proyecto en el primer arranque ───
+# ─── Entrypoint: setup inicial en el primer arranque ───
 RUN cat > /usr/local/bin/entrypoint.sh <<'SCRIPT'
 #!/bin/sh
 set -e
@@ -55,12 +77,6 @@ if [ "$RUN_SETUP" = "1" ]; then
     cp .env.example .env
     php artisan key:generate
   fi
-
-  echo "==> Instalando dependencias npm..."
-  [ ! -d node_modules ] && npm install
-
-  echo "==> Compilando assets con Vite..."
-  [ ! -f public/build/manifest.json ] && npm run build
 fi
 
 exec "$@"
