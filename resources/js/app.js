@@ -189,6 +189,7 @@ function updateMetrics(data) {
         }
     });
     updateSystemStatus(data.status);
+    alarm.onStatusChange(data.status);
 }
 
 function updateSystemStatus(status) {
@@ -532,6 +533,130 @@ function initButtons() {
 }
 
 // ══════════════════════════════════════════════════
+//  ALARMA SONORA (Web Audio API)
+// ══════════════════════════════════════════════════
+
+const alarm = (() => {
+    let audioCtx       = null;
+    let muted          = localStorage.getItem('fiberpulse-mute') === 'true';
+    let audioUnlocked  = false;   // el navegador requiere interacción del usuario antes de reproducir
+    let lastAlarmState = null;    // 'CRITICAL' | 'WARNING' | null — evita repetir sonido innecesariamente
+
+    /** Crea (o reutiliza) el AudioContext — debe llamarse tras un gesto del usuario */
+    function getCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        audioUnlocked = true;
+        return audioCtx;
+    }
+
+    /**
+     * Tono de alerta NOC profesional (~1.2 s):
+     * Dos pitidos cortos tipo "servidor crítico" con sine limpio,
+     * ligeramente detuneados para dar sensación de urgencia sin ser agresivo.
+     */
+    function playAlertTone() {
+        if (muted) return;
+        const ctx = getCtx();
+        const now = ctx.currentTime;
+
+        // Compresor para evitar clipping
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -10;
+        compressor.ratio.value     = 4;
+        compressor.connect(ctx.destination);
+
+        function beep(startTime, freq, duration) {
+            // Oscilador principal
+            const osc1  = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.value = freq;
+            gain1.gain.setValueAtTime(0.0001, startTime);
+            gain1.gain.linearRampToValueAtTime(0.28, startTime + 0.01);   // attack rápido
+            gain1.gain.setValueAtTime(0.28, startTime + duration * 0.5);
+            gain1.gain.exponentialRampToValueAtTime(0.0001, startTime + duration); // decay limpio
+            osc1.connect(gain1);
+            gain1.connect(compressor);
+            osc1.start(startTime);
+            osc1.stop(startTime + duration);
+
+            // Armónico sutil (+5 Hz detune) para darle cuerpo
+            const osc2  = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.value = freq + 5;
+            gain2.gain.setValueAtTime(0.0001, startTime);
+            gain2.gain.linearRampToValueAtTime(0.10, startTime + 0.01);
+            gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+            osc2.connect(gain2);
+            gain2.connect(compressor);
+            osc2.start(startTime);
+            osc2.stop(startTime + duration);
+        }
+
+        // Primer pitido: 1046 Hz (Do6) — 0.25 s
+        beep(now,        1046, 0.25);
+        // Segundo pitido: 1318 Hz (Mi6) — 0.25 s (intervalo de tercera mayor → urgente pero musical)
+        beep(now + 0.35, 1318, 0.25);
+        // Tercer pitido igual al primero, cierra la frase
+        beep(now + 0.70, 1046, 0.35);
+    }
+
+    /** Desbloquea el AudioContext en el primer gesto del usuario */
+    function unlockOnInteraction() {
+        const unlock = () => {
+            if (audioUnlocked) return;
+            getCtx();   // solo crear/resumir — sin sonido
+            document.removeEventListener('click', unlock);
+            document.removeEventListener('keydown', unlock);
+        };
+        document.addEventListener('click', unlock, { passive: true });
+        document.addEventListener('keydown', unlock, { passive: true });
+    }
+
+    /** Actualiza el icono del botón mute según el estado */
+    function syncMuteIcon() {
+        document.getElementById('alarm-icon-on')?.classList.toggle('hidden', muted);
+        document.getElementById('alarm-icon-off')?.classList.toggle('hidden', !muted);
+        const btn = document.getElementById('btn-mute-alarm');
+        if (btn) {
+            btn.classList.toggle('text-slate-400', !muted);
+            btn.classList.toggle('dark:text-slate-400', !muted);
+            btn.classList.toggle('text-[#ff3366]', muted);
+            btn.classList.toggle('dark:text-[#ff3366]', muted);
+            btn.title = muted ? 'Activar alarma' : 'Silenciar alarma';
+        }
+    }
+
+    /** Inicializa el botón mute y el desbloqueo por interacción */
+    function init() {
+        syncMuteIcon();
+        unlockOnInteraction();
+        document.getElementById('btn-mute-alarm')?.addEventListener('click', () => {
+            muted = !muted;
+            localStorage.setItem('fiberpulse-mute', muted);
+            syncMuteIcon();
+            showToast(muted ? '🔇 Alarma silenciada' : '🔔 Alarma activada', 'info');
+        });
+    }
+
+    /**
+     * Llamar desde SSE cada vez que llega un nuevo estado del sistema.
+     * Solo suena si el estado cambia a CRITICAL (no repite si ya era CRITICAL).
+     */
+    function onStatusChange(newStatus) {
+        const s = (newStatus || '').toUpperCase();
+        if (s === 'CRITICAL' && lastAlarmState !== 'CRITICAL') {
+            playAlertTone();
+        }
+        lastAlarmState = s || null;
+    }
+
+    return { init, onStatusChange };
+})();
+
+// ══════════════════════════════════════════════════
 //  UTILS
 // ══════════════════════════════════════════════════
 
@@ -570,6 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initSSE();
     initButtons();
+    alarm.init();
 
     // Reloj
     setInterval(() => {
