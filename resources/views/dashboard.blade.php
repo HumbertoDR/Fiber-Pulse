@@ -49,7 +49,7 @@
                     <span class="text-xs opacity-40">usuarios</span>
                 </div>
                 <span class="text-slate-300 dark:text-slate-600">|</span>
-                <span id="gemini-badge" class="status-badge bg-cyan-100 text-cyan-700 dark:bg-[#00ffd5]/15 dark:text-[#00ffd5]">Gemini</span>
+                <span id="gemini-badge" class="status-badge bg-cyan-100 text-cyan-700 dark:bg-[#00ffd5]/15 dark:text-[#00ffd5]">{{ $geminiModel }}</span>
             </div>
 
             {{-- Derecha: acciones --}}

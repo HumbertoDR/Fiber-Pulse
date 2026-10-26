@@ -1,6 +1,6 @@
 # FiberPulse AI · SENA IAoT Telemetry Dashboard
 
-Sistema de telemetría e IAoT en tiempo real para monitorear métricas de hardware y red del servidor local, con diagnóstico predictivo impulsado por **Google Gemini 2.5 Flash**.
+Sistema de telemetría e IAoT en tiempo real para monitorear métricas de hardware y red del servidor local, con diagnóstico predictivo impulsado por **Google Gemini 3.5 Flash Lite**.
 
 Diseñado como panel de control tipo NOC para instructores y asistentes del SENA, con modo oscuro/claro, gráficos en vivo, código QR de conexión rápida y simulación de anomalías.
 
@@ -34,7 +34,7 @@ Diseñado como panel de control tipo NOC para instructores y asistentes del SENA
                         │  Worker ◄──── AnalyzeTelemetryJob               │
                         │    │                  │                         │
                         │    ▼                  ▼                         │
-                        │  Gemini 2.5 Flash API  /proc (métricas reales)  │
+                        │  Gemini 3.5 Flash Lite API  /proc (métricas reales)  │
                         └─────────────────────────────────────────────────┘
 ```
 
@@ -43,7 +43,7 @@ Diseñado como panel de control tipo NOC para instructores y asistentes del SENA
 - **Base de datos:** MySQL 8 + Redis (caché, colas, telemetría en tiempo real)
 - **Frontend:** Blade + Tailwind CSS 4 (dark/light mode) + Chart.js + qrcode.js
 - **Tiempo real:** Server-Sent Events (SSE) con Nginx sin buffering
-- **IA:** Google Gemini 2.5 Flash (Pay-as-you-go) con salida JSON estructurada
+- **IA:** Google Gemini 3.5 Flash Lite (Pay-as-you-go) con salida JSON estructurada
 - **Colas:** Laravel Queue (Redis) para análisis IA en segundo plano
 
 ## Requisitos
@@ -103,7 +103,7 @@ http://localhost:8080
 | Variable | Descripción | Default |
 |---|---|---|
 | `GEMINI_API_KEY` | API key de Google Gemini (Pay-as-you-go) | (vacío = modo local) |
-| `GEMINI_MODEL` | Modelo de Gemini a usar | `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Modelo de Gemini a usar | `gemini-3.5-flash-lite` |
 | `TELEMETRY_MODE` | `auto` (métricas reales + simulación) o `simulated` | `auto` |
 | `TELEMETRY_INTERVAL` | Segundos entre capturas de telemetría | `5` |
 | `DB_HOST` | Host de MySQL (nombre del contenedor) | `db` |
@@ -256,4 +256,4 @@ docker-compose exec app npm run build
 
 ---
 
-**FiberPulse AI** · SENA IAoT Telemetry Dashboard · Laravel 13 + Gemini 2.5 Flash + Docker + Redis + SSE
+**FiberPulse AI** · SENA IAoT Telemetry Dashboard · Laravel 13 + Gemini 3.5 Flash Lite + Docker + Redis + SSE

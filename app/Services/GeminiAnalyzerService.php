@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * GeminiAnalyzerService
  *
- * Integra Google Gemini API (gemini-2.5-flash, Pay-as-you-go) para
+ * Integra Google Gemini API (gemini-3.5-flash-lite, Pay-as-you-go) para
  * análisis predictivo de telemetría en tiempo real.
  *
  * Flujo:

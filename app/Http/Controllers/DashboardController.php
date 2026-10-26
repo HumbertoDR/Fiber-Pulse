@@ -30,7 +30,7 @@ class DashboardController extends Controller
 
         $localUrl = $this->getLocalUrl($request);
         $geminiEnabled = !empty(config('gemini.api_key'));
-        $geminiModel = config('gemini.model', 'gemini-2.5-flash');
+        $geminiModel = config('gemini.model', 'gemini-3.5-flash-lite');
 
         return view('dashboard', [
             'latest'        => $latest,
