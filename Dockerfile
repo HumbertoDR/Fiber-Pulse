@@ -1,72 +1,42 @@
 # syntax=docker/dockerfile:1
 
 # ══════════════════════════════════════════════════
-# ETAPA 1 — Node.js: instala deps y compila assets
+# ETAPA 1 — Node.js: Compilación de assets
 # ══════════════════════════════════════════════════
 FROM node:22-alpine AS frontend
 
 WORKDIR /app
-
-# Copiar solo los archivos necesarios para npm install
 COPY package.json package-lock.json ./
-
 RUN npm ci --no-audit --no-fund
 
-# Copiar el resto del código fuente para el build
 COPY resources/ resources/
 COPY vite.config.js ./
 COPY public/ public/
-
 RUN npm run build
 
 # ══════════════════════════════════════════════════
-# ETAPA 2 — PHP: imagen final de producción
+# ETAPA 2 — PHP Alpine: Producción ultraligera
 # ══════════════════════════════════════════════════
-FROM php:8.4-cli AS app
+FROM php:8.4-cli-alpine AS app
 
-# ESTE ES EL CAMBIO CLAVE: Definir el directorio de trabajo antes de copiar nada
 WORKDIR /var/www/html
 
-# ─── Dependencias del sistema (solo las necesarias) ───
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    zip \
-    unzip \
-    libonig-dev \
-    libzip-dev \
-    libicu-dev \
-    default-mysql-client \
-    && rm -rf /var/lib/apt/lists/*
+# ─── Script para instalar extensiones en segundos ───
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-# ─── Extensiones PHP requeridas por el proyecto ───
-RUN docker-php-ext-install \
-    pdo_mysql \
-    mbstring \
-    pcntl \
-    bcmath \
-    zip \
-    intl \
-    opcache \
-    sockets
-
-# ─── Redis (caché y colas) ───
-RUN pecl install redis && docker-php-ext-enable redis
+# ─── Dependencias del sistema y extensiones precompiladas ───
+RUN apk add --no-cache git curl zip unzip mysql-client \
+    && install-php-extensions pdo_mysql mbstring pcntl bcmath zip intl opcache sockets redis
 
 # ─── Configuración PHP crítica para SSE ───
-# output_buffering=Off e implicit_flush=On son obligatorios para que
-# Server-Sent Events funcione sin bloqueos en tiempo real
-RUN echo "output_buffering = Off\nimplicit_flush = On\nmemory_limit = 512M\nmax_execution_time = 300\nopcache.enable = 1\nopcache.memory_consumption = 128\nopcache.max_accelerated_files = 10000" \
+RUN echo -e "output_buffering = Off\nimplicit_flush = On\nmemory_limit = 512M\nmax_execution_time = 300\nopcache.enable = 1\nopcache.memory_consumption = 128\nopcache.max_accelerated_files = 10000" \
     > /usr/local/etc/php/conf.d/fiberpulse.ini
 
-# ─── Composer ───
+# ─── Composer y Assets ───
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# ─── Assets compilados desde la etapa Node (sin Node.js en imagen final) ───
-# Ahora sí se copiarán en /var/www/html/public/build
 COPY --from=frontend /app/public/build ./public/build
 
-# ─── Entrypoint: setup inicial en el primer arranque ───
+# ─── Entrypoint ───
 RUN cat > /usr/local/bin/entrypoint.sh <<'SCRIPT'
 #!/bin/sh
 set -e
@@ -87,9 +57,7 @@ exec "$@"
 SCRIPT
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Workers para SSE + peticiones simultáneas (sobreescrito en docker-compose)
 ENV PHP_CLI_SERVER_WORKERS=4
-
 EXPOSE 8000
 
 ENTRYPOINT ["entrypoint.sh"]
