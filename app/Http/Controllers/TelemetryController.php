@@ -192,7 +192,7 @@ class TelemetryController extends Controller
     }
 
     /**
-     * ─── Limpiar anomalía (panel del instructor) ───
+     * ─── Limpiar anomalía (panel del administrador) ───
      */
     public function clearAnomaly(): JsonResponse
     {
@@ -207,7 +207,7 @@ class TelemetryController extends Controller
     }
 
     /**
-     * ─── Lista de anomalías disponibles (para el panel del instructor) ───
+     * ─── Lista de anomalías disponibles (para el panel del administrador) ───
      */
     public static function getAnomalyTypes(): array
     {
