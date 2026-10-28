@@ -24,6 +24,9 @@ RUN npm run build
 # ══════════════════════════════════════════════════
 FROM php:8.4-cli AS app
 
+# ESTE ES EL CAMBIO CLAVE: Definir el directorio de trabajo antes de copiar nada
+WORKDIR /var/www/html
+
 # ─── Dependencias del sistema (solo las necesarias) ───
 RUN apt-get update && apt-get install -y \
     git \
@@ -60,6 +63,7 @@ RUN echo "output_buffering = Off\nimplicit_flush = On\nmemory_limit = 512M\nmax_
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # ─── Assets compilados desde la etapa Node (sin Node.js en imagen final) ───
+# Ahora sí se copiarán en /var/www/html/public/build
 COPY --from=frontend /app/public/build ./public/build
 
 # ─── Entrypoint: setup inicial en el primer arranque ───
@@ -82,8 +86,6 @@ fi
 exec "$@"
 SCRIPT
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-WORKDIR /var/www/html
 
 # Workers para SSE + peticiones simultáneas (sobreescrito en docker-compose)
 ENV PHP_CLI_SERVER_WORKERS=4
