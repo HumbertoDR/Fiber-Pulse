@@ -43,13 +43,27 @@ set -e
 cd /var/www/html
 
 if [ "$RUN_SETUP" = "1" ]; then
-  echo "==> Instalando dependencias de Composer..."
-  [ ! -f vendor/autoload.php ] && composer install --no-interaction --prefer-dist --optimize-autoloader
+  # 1) Crear el .env si no existe
+  [ -f .env ] || cp .env.example .env
 
-  echo "==> Configurando .env..."
-  if [ ! -f .env ]; then
-    cp .env.example .env
-    php artisan key:generate
+  # 2) Instalar dependencias si falta vendor
+  if [ ! -f vendor/autoload.php ]; then
+    echo "==> Instalando dependencias de Composer..."
+    composer install --no-interaction --prefer-dist --optimize-autoloader
+  fi
+
+  # 3) Generar la APP_KEY si está vacía (exista o no el .env)
+  if ! grep -q '^APP_KEY=base64' .env; then
+    echo "==> Generando APP_KEY..."
+    php artisan key:generate --force
+  fi
+
+  # 4) Migrar; sembrar datos solo si la BD está vacía
+  echo "==> Preparando base de datos..."
+  if php artisan migrate:status >/dev/null 2>&1; then
+    php artisan migrate --force
+  else
+    php artisan migrate --force --seed
   fi
 fi
 
