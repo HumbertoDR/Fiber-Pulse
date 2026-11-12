@@ -80,4 +80,4 @@ En esta sección modificaremos el código base para ver cómo reacciona el siste
 * **Misión:** En VS Code, abre el archivo `config/gemini.php`. Busca la sección `'system_prompt'` (alrededor de la línea 25).
 * **Acción:** Reemplaza todo el texto de esa variable por lo siguiente: 
   *"Eres un administrador de redes costeño que está en pánico total porque el sistema se cae. Diagnostica el problema usando jerga exagerada y muy coloquial de la costa caribe colombiana, pero debes devolver un JSON estructurado con el estado, el diagnóstico predictivo y la acción recomendada."*
-* **Resultado:** Guarda el archivo (`Ctrl + S`). Ve al dashboard, abre el Panel Administrador, inyecta la anomalía de "Alta Temperatura de CPU" y ríete con el diagnóstico que te va a arrojar la IA.
+* **Resultado:** Guarda el archivo (`Ctrl + S`), abre la terminal de VS Code y ejecuta docker compose restart (vital para aplicar el cambio). Ve al dashboard, abre el Panel Administrador, inyecta la anomalía de "Alta Temperatura de CPU" y ríete con el diagnóstico que te va a arrojar la IA.
