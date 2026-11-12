@@ -133,4 +133,4 @@ Este proyecto está bajo la Licencia **MIT**. Eres libre de usarlo, modificarlo 
 
 *   **Autor:** Humberto Hernando Díaz Rada 
 *   **Centro de Formación:** Centro Nacional Colombo Alemán - SENA Regional Atlántico
-*   **Contacto:** [GitHub - HumbertoDR](https://github.com/HumbertoDR) (Sustituye con tu link real)
+*   **Contacto:** [GitHub - HumbertoDR](https://github.com/HumbertoDR)
