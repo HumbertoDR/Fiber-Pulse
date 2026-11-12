@@ -703,37 +703,6 @@
         }, 3500);
     }
 
-    /* ── Inyectar anomalía (AJAX) ── */
-    function injectAnomaly(type, btn) {
-        var orig = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = 'Inyectando...';
-        fetch('/telemetry/inject/' + type, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ duration: 60 })
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-            toast((d.success ? '⚡ ' : '❌ ') + d.message, d.success ? 'warning' : 'error');
-        })
-        .catch(function () { toast('Error de conexión', 'error'); })
-        .finally(function () {
-            setTimeout(function () { btn.disabled = false; btn.innerHTML = orig; }, 2000);
-        });
-    }
-
-    function clearAnomaly() {
-        fetch('/telemetry/clear', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({})
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (d) { toast((d.success ? '✅ ' : '❌ ') + d.message, d.success ? 'success' : 'error'); })
-        .catch(function () { toast('Error de conexión', 'error'); });
-    }
-
     /* ── Wire-up al cargar el DOM ── */
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -772,30 +741,12 @@
         document.getElementById('btn-close-instructor')?.addEventListener('click', function () { closeModal('modal-instructor'); });
         document.getElementById('modal-instructor-backdrop')?.addEventListener('click', function () { closeModal('modal-instructor'); });
 
-        /* Botones de anomalía */
-        document.querySelectorAll('[data-inject]').forEach(function (btn) {
-            btn.addEventListener('click', function () { injectAnomaly(btn.dataset.inject, btn); });
-        });
-
-        /* Detener anomalía */
-        document.getElementById('clear-anomaly-btn')?.addEventListener('click', clearAnomaly);
-        document.getElementById('clear-anomaly-btn-modal')?.addEventListener('click', function () {
-            clearAnomaly();
-            closeModal('modal-instructor');
-        });
-
         /* Botón QR */
         document.getElementById('btn-open-qr')?.addEventListener('click', function () {
             openModal('modal-qr');
         });
         document.getElementById('btn-close-qr')?.addEventListener('click', function () { closeModal('modal-qr'); });
         document.getElementById('modal-qr-backdrop')?.addEventListener('click', function () { closeModal('modal-qr'); });
-
-        /* Copiar URL */
-        document.getElementById('copy-url-btn')?.addEventListener('click', function () {
-            var url = document.querySelector('.local-url-text')?.textContent?.trim() || '';
-            if (url) navigator.clipboard.writeText(url).then(function () { toast('URL copiada', 'success'); });
-        });
 
         /* Escape cierra cualquier modal */
         document.addEventListener('keydown', function (e) {
