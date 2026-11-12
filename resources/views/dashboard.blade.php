@@ -149,7 +149,7 @@
                 <div class="flex items-center gap-3 flex-shrink-0">
                     <span id="anomaly-countdown" class="text-sm font-mono tabular-nums opacity-60">--s</span>
                     <button id="clear-anomaly-btn"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                        class="hidden px-3 py-1.5 rounded-lg text-xs font-semibold
                                bg-red-100 hover:bg-red-200 dark:bg-[#ff3366]/15 dark:hover:bg-[#ff3366]/25
                                border border-red-300 dark:border-[#ff3366]/40
                                text-red-700 dark:text-[#ff3366] transition-all duration-200">

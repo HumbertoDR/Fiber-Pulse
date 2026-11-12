@@ -402,8 +402,15 @@ function isAdminAuthenticated() {
     return sessionStorage.getItem(PIN_SESSION_KEY) === 'true';
 }
 
+/** Muestra u oculta controles exclusivos del administrador según autenticación */
+function syncAdminControls() {
+    const isAdmin = isAdminAuthenticated();
+    document.getElementById('clear-anomaly-btn')?.classList.toggle('hidden', !isAdmin);
+}
+
 function setAdminAuthenticated() {
     sessionStorage.setItem(PIN_SESSION_KEY, 'true');
+    syncAdminControls();
 }
 
 function handleOpenAdmin() {
@@ -708,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSSE();
     initButtons();
     alarm.init();
+    syncAdminControls();
 
     // Reloj
     setInterval(() => {
