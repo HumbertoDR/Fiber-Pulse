@@ -65,19 +65,20 @@ Ahora vamos a conectar el sistema a los datos reales de tu equipo y a activar la
 
 En esta sección modificaremos el código base para ver cómo reacciona el sistema en tiempo real. 
 
-### Ejercicio 1: Trolleando los Umbrales (El Efecto Pánico)
-* **Objetivo:** Disparar la alerta CRITICAL y hacer sonar las alarmas con solo abrir una pestaña del navegador.
-* **Misión:** En VS Code, abre el archivo `app/Models/TelemetryLog.php`. Ve a la línea 66, donde se define `$criticalThresholds`. Cambia el valor de `'ram_usage'` de `90` a `40`. 
-* **Acción:** Guarda el archivo (`Ctrl + S`). Abre un par de pestañas nuevas en Google Chrome y observa el caos absoluto en tu dashboard de FiberPulse AI.
+### Ejercicio 1: Falsificando la Telemetría (Ataque Hacker)
+- **Objetivo:** Simular un sobrecalentamiento crítico inyectando datos falsos desde el agente de Windows para engañar al servidor.
+- **Misión:** En VS Code, abre el script `host-agent/metrics-agent.ps1`. Ve a la línea donde se construye el `$payload` (exactamente en la línea **176**).
+- **Acción:** Cambia la línea `temperature = $temp` por un valor exagerado, por ejemplo: `temperature = 99.9`. 
+- **Resultado:** Guarda el archivo (`Ctrl + S`), ve a tu ventana de PowerShell, detén el script presionando `Ctrl + C` y vuelve a ejecutarlo. Observa cómo el dashboard se enciende en rojo crítico inmediatamente y la IA entra en pánico diagnosticando un riesgo físico inminente.
 
 ### Ejercicio 2: El Efecto Matrix (Acelerar la Red)
-* **Objetivo:** Ver el poder de Server-Sent Events (SSE) acelerando la recolección de datos al máximo.
-* **Misión:** Abre el archivo `.env`. Busca la línea que dice `TELEMETRY_INTERVAL=5`. Cambia ese `5` (segundos) por `1`. 
-* **Acción:** Guarda el archivo, abre la terminal de VS Code y ejecuta `docker compose restart`. Observa cómo las gráficas en tiempo real ahora vuelan, actualizándose cada segundo.
+- **Objetivo:** Ver el poder de Server-Sent Events (SSE) acelerando la recolección de datos al máximo.
+- **Misión:** Abre el archivo `.env`. Busca la línea que dice `TELEMETRY_INTERVAL=5`. Cambia ese `5` (segundos) por `1`. 
+- **Acción:** Guarda el archivo, abre la terminal de VS Code y ejecuta `docker compose restart`. Observa cómo las gráficas en tiempo real ahora vuelan, actualizándose cada segundo.
 
 ### Ejercicio 3: Cambio de Personalidad de la IA
-* **Objetivo:** Modificar el cerebro de Gemini para que el diagnóstico deje de ser técnico y se vuelva muy divertido.
-* **Misión:** En VS Code, abre el archivo `config/gemini.php`. Busca la sección `'system_prompt'` (alrededor de la línea 25).
-* **Acción:** Reemplaza todo el texto de esa variable por lo siguiente: 
+- **Objetivo:** Modificar el cerebro de Gemini para que el diagnóstico deje de ser técnico y se vuelva muy divertido.
+- **Misión:** En VS Code, abre el archivo `config/gemini.php`. Busca la sección `'system_prompt'` (alrededor de la línea 25).
+- **Acción:** Reemplaza todo el texto de esa variable por lo siguiente: 
   *"Eres un administrador de redes costeño que está en pánico total porque el sistema se cae. Diagnostica el problema usando jerga exagerada y muy coloquial de la costa caribe colombiana, pero debes devolver un JSON estructurado con el estado, el diagnóstico predictivo y la acción recomendada."*
-* **Resultado:** Guarda el archivo (`Ctrl + S`), abre la terminal de VS Code y ejecuta docker compose restart (vital para aplicar el cambio). Ve al dashboard, abre el Panel Administrador, inyecta la anomalía de "Alta Temperatura de CPU" y ríete con el diagnóstico que te va a arrojar la IA.
+- **Resultado:** Guarda el archivo (`Ctrl + S`), abre la terminal de VS Code y ejecuta `docker compose restart` (vital para aplicar el cambio). Ve al dashboard, abre el Panel Administrador, inyecta la anomalía de "Alta Temperatura de CPU" y ríete con el diagnóstico que te va a arrojar la IA.
