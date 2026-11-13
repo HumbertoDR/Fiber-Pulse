@@ -230,15 +230,27 @@ class TelemetryCollectorService
             return null;
         }
         $anomaly = json_decode($data, true);
-        if (!$anomaly) {
-            return null;
-        }
-        // Verificar si la anomalía ya expiró
-        if (time() - $anomaly['started_at'] >= $anomaly['duration']) {
+        if (!$anomaly || !isset($anomaly['started_at'], $anomaly['duration'])) {
+            // Datos corruptos, limpiar
             Redis::del(self::RK_ANOMALY);
             return null;
         }
-        $anomaly['remaining'] = $anomaly['duration'] - (time() - $anomaly['started_at']);
+        
+        // Verificar si la anomalía ya expiró
+        $elapsed = time() - $anomaly['started_at'];
+        if ($elapsed >= $anomaly['duration']) {
+            Redis::del(self::RK_ANOMALY);
+            return null;
+        }
+        
+        // Validar que la anomalía no sea demasiado antigua (más de 1 hora es sospechoso)
+        // Esto previene que anomalías de sesiones antiguas persistan por error
+        if ($elapsed > 3600) {
+            Redis::del(self::RK_ANOMALY);
+            return null;
+        }
+        
+        $anomaly['remaining'] = $anomaly['duration'] - $elapsed;
         return $anomaly;
     }
 
