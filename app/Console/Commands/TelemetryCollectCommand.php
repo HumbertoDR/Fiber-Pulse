@@ -23,10 +23,10 @@ use Illuminate\Support\Facades\Log;
 class TelemetryCollectCommand extends Command
 {
     protected $signature = 'telemetry:collect
-                            {--interval=5 : Segundos entre capturas}
+                            {--interval= : Segundos entre capturas (usa TELEMETRY_INTERVAL del .env si se omite)}
                             {--max=0 : Número máximo de iteraciones (0 = infinito)}';
 
-    protected $description = 'Capturar métricas de telemetría en tiempo real (bucle continuo cada 5s)';
+    protected $description = 'Capturar métricas de telemetría en tiempo real (intervalo configurable vía .env)';
 
     /** Contador de iteraciones */
     private int $iteration = 0;
@@ -48,7 +48,11 @@ class TelemetryCollectCommand extends Command
 
     public function handle(TelemetryCollectorService $collector, GeminiAnalyzerService $analyzer): int
     {
-        $interval = (int) $this->option('interval');
+        // Leer intervalo: primero desde CLI, luego desde config (que lee .env)
+        $interval = $this->option('interval') 
+            ? (int) $this->option('interval') 
+            : config('telemetry.interval', 5);
+            
         $max = (int) $this->option('max');
 
         $this->info('═══════════════════════════════════════════════');

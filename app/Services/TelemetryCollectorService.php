@@ -55,6 +55,11 @@ class TelemetryCollectorService
             default      => $this->collectAuto(),   // 'auto'
         };
 
+        // Si no se obtuvieron métricas (null), usar simulación como fallback
+        if ($metrics === null) {
+            $metrics = $this->simulateMetrics();
+        }
+
         $metrics = $this->applyAnomaly($metrics);
         $metrics['status']      = TelemetryLog::determineStatus($metrics);
         $metrics['recorded_at'] = now()->toDateTimeString();
@@ -95,7 +100,7 @@ class TelemetryCollectorService
         try {
             $ctx = stream_context_create([
                 'http' => [
-                    'timeout'       => 10,
+                    'timeout'       => config('telemetry.agent_timeout', 2),
                     'ignore_errors' => true,
                 ],
             ]);

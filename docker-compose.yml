@@ -5,6 +5,8 @@ x-laravel-env: &laravel-env
   DB_USERNAME: "${DB_USERNAME:-sail}"
   DB_PASSWORD: "${DB_PASSWORD:-secret}"
   REDIS_HOST: redis
+  TELEMETRY_INTERVAL: "${TELEMETRY_INTERVAL:-5}"
+  TELEMETRY_MODE: "${TELEMETRY_MODE:-auto}"
 
 services:
 

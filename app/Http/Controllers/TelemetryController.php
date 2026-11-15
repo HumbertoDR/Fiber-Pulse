@@ -98,7 +98,8 @@ class TelemetryController extends Controller
                 }
                 @flush();
 
-                sleep(3);
+                // Intervalo de envío al frontend (lee del config que viene del .env)
+                sleep(config('telemetry.interval', 3));
             }
 
             // Cleanup al desconectar
