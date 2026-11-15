@@ -30,14 +30,14 @@ El sistema actúa como un puente entre la infraestructura de red física y el an
 
 ## ✨ Características Destacadas
 
-*   **📊 Telemetría en Vivo (SSE):** Monitoreo cada 5 segundos de CPU, RAM, Temperatura, Latencia, Throughput y Señal Óptica sin necesidad de recargar la página ni usar bases de datos lentas para la vista en vivo.
-*   **🤖 Diagnóstico Predictivo Híbrido:** Integración con Gemini 3.5 Flash Lite para análisis inteligente, con un sistema de respaldo automático basado en umbrales locales por si falla la API.
-*   **🚨 Sistema de Alertas Multisensorial:** 
-    *   Visual (Gráficos Chart.js animados y LEDs de estado).
-    *   Auditiva (Tono de alerta sintetizado vía Web Audio API).
-    *   Háptica (Vibración nativa en dispositivos móviles Android al detectar fallas críticas).
-*   **🕹️ Panel de Simulación:** Área protegida por PIN para inyectar anomalías controladas (sobrecarga de CPU, caída óptica, fuga de RAM, etc.) ideal para demostraciones en vivo.
-*   **📱 Conexión Rápida por QR:** Acceso instantáneo al dashboard desde cualquier dispositivo conectado a la misma red local (LAN).
+- **📊 Telemetría en Vivo (SSE):** Monitoreo en tiempo real (configurable desde 1 hasta 5 segundos) de CPU, RAM, Temperatura, Latencia, Throughput y Señal Óptica sin necesidad de recargar la página ni usar bases de datos lentas para la vista en vivo.
+- **🤖 Diagnóstico Predictivo Híbrido:** Integración con Gemini 3.5 Flash Lite para análisis inteligente, con un sistema de respaldo automático basado en umbrales locales por si falla la API.
+- **🚨 Sistema de Alertas Multisensorial:** 
+  * Visual (Gráficos Chart.js animados y LEDs de estado).
+  * Auditiva (Tono de alerta sintetizado vía Web Audio API).
+  * Háptica (Vibración nativa en dispositivos móviles Android al detectar fallas críticas).
+- **🕹️ Panel de Simulación:** Área protegida por PIN para inyectar anomalías controladas (sobrecarga de CPU, caída óptica, fuga de RAM, etc.) ideal para demostraciones en vivo.
+- **📱 Conexión Rápida por QR:** Acceso instantáneo al dashboard desde cualquier dispositivo conectado a la misma red local (LAN).
 
 ---
 
@@ -60,10 +60,10 @@ graph TD
 
 ## ⚙️ Tecnologías Utilizadas
 
-*   **Backend:** Laravel 13, PHP 8.4, MySQL 8.0, Redis 7.x.
-*   **Frontend:** Tailwind CSS 4.0, JavaScript ES2024, Chart.js, qrcode.js, Vite.
-*   **Infraestructura:** Docker Compose, Agente nativo de PowerShell (WMI).
-*   **APIs Nativas:** Server-Sent Events, Web Audio API, Vibration API (`navigator.vibrate`).
+- **Backend:** Laravel 13, PHP 8.4, MySQL 8.0, Redis 7.x.
+- **Frontend:** Tailwind CSS 4.0, JavaScript ES2024, Chart.js, qrcode.js, Vite.
+- **Infraestructura:** Docker Compose, Agente nativo de PowerShell (WMI).
+- **APIs Nativas:** Server-Sent Events, Web Audio API, Vibration API (`navigator.vibrate`).
 
 ---
 
@@ -73,8 +73,8 @@ La forma más rápida y recomendada de probar FiberPulse AI es utilizando **Dock
 
 **1. Clonar el repositorio**
 ```bash
-git clone https://github.com/tu-usuario/fiberpulse-ai.git
-cd fiberpulse-ai
+git clone https://github.com/HumbertoDR/Fiber-Pulse.git
+cd Fiber-Pulse
 ```
 
 **2. Configurar las variables de entorno**
@@ -118,12 +118,12 @@ php artisan telemetry:collect
 
 ---
 
-## 🎯 Impacto y Demostraciones (SENA)
+## 🎯 Enfoque Pedagógico y Demostraciones (SENA)
 
-Este repositorio está diseñado para cumplir con los objetivos de transferencia tecnológica:
+Este repositorio está diseñado para cumplir con los objetivos de transferencia tecnológica en entornos académicos y demostraciones en vivo:
 
-1.  **Conferencia Pública (50 asistentes):** Utilizando el modo de "Inyección de Anomalías" y el código QR, se puede conectar a todo el auditorio simultáneamente. Al disparar un evento crítico de red, los 50 celulares de los asistentes sonarán y vibrarán al mismo tiempo, ilustrando el poder del IoT en tiempo real.
-2.  **Laboratorio Práctico (30 aprendices):** El código está estructurado para que los estudiantes de ADSO puedan clonarlo, modificar los umbrales de alerta físicos (ej. `app/Models/TelemetryLog.php`) e interactuar con la ingeniería de prompts de la IA (`config/gemini.php`).
+1. **Demostraciones Interactivas en Vivo:** Utilizando el modo de "Inyección de Anomalías" y el acceso rápido mediante código QR, todo el auditorio puede conectarse simultáneamente desde sus dispositivos móviles. Al disparar un evento crítico de red, los teléfonos conectados reaccionan con alertas visuales, sonoras y de vibración al mismo tiempo, ilustrando el poder del IoT en tiempo real.
+2. **Laboratorios Prácticos de Formación:** El proyecto incluye una guía paso a paso (`GUIA_LABORATORIO.md`) estructurada para que los aprendices de ADSO puedan desplegar el entorno con Docker, manipular métricas desde el agente de Windows (`host-agent/metrics-agent.ps1`), ajustar la frecuencia de transmisión (`TELEMETRY_INTERVAL`) e interactuar con la ingeniería de *prompts* de la IA (`config/gemini.php`).
 
 ---
 
@@ -131,6 +131,6 @@ Este repositorio está diseñado para cumplir con los objetivos de transferencia
 
 Este proyecto está bajo la Licencia **MIT**. Eres libre de usarlo, modificarlo y distribuirlo para fines educativos.
 
-*   **Autor:** Humberto Hernando Díaz Rada 
-*   **Centro de Formación:** Centro Nacional Colombo Alemán - SENA Regional Atlántico
-*   **Contacto:** [GitHub - HumbertoDR](https://github.com/HumbertoDR)
+- **Autor:** Humberto Hernando Díaz Rada 
+- **Centro de Formación:** Centro Nacional Colombo Alemán - SENA Regional Atlántico
+- **Contacto:** [GitHub - HumbertoDR](https://github.com/HumbertoDR)
